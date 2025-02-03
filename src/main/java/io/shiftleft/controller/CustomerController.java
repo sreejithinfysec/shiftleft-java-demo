@@ -301,20 +301,21 @@ public String debug(@RequestParam String customerId,
     Set<Account> accounts1 = new HashSet<Account>();
     //dateofbirth example -> "1982-01-10"
     SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
-    Date date = formatter.parse(dateOfBirth);
+    Date dateOfBirthFormatted = formatter.parse(dateOfBirth);
 
-    Customer customer1 = new Customer(customerId, clientId, firstName, lastName, date,
-            ssn, socialSecurityNum, tin, phoneNumber, new Address("Debug str",
-            "", "Debug city", "CA", "12345"),
-            accounts1);
+    Customer customer1 = new Customer(customerId, clientId, Encode.forHtml(firstName), Encode.forHtml(lastName), dateOfBirthFormatted,
+                                      Encode.forHtml(ssn), Encode.forHtml(socialSecurityNum), Encode.forHtml(tin), Encode.forHtml(phoneNumber), new Address(Encode.forHtml("Debug str"),
+                                      "", Encode.forHtml("Debug city"), "CA", "12345"),
+                                      accounts1);
 
     customerRepository.save(customer1);
     httpResponse.setStatus(HttpStatus.CREATED.value());
     httpResponse.setHeader("Location", String.format("%s/customers/%s",
-            request.getContextPath(), customer1.getId()));
+                            request.getContextPath(), customer1.getId()));
 
-    return Encode.forHtml(customer1.toString().toLowerCase());
+    return Encode.forHtml(customer1.toString()).toLowerCase();
 }
+
 
 
 
