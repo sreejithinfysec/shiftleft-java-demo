@@ -19,15 +19,31 @@ public class SearchController {
 
 @RequestMapping(value = "/search/user", method = RequestMethod.GET)
 public String doGetSearch(@RequestParam String foo, HttpServletResponse response, HttpServletRequest request) {
-    String message = null;
+    java.lang.Object message = new Object();
     try {
-        // Replaced the SpEL evaluation with a safer alternative
-        message = foo;
+        ExpressionParser parser = new SpelExpressionParser();
+        Expression exp = parser.parseExpression(foo);
+        message = (Object) exp.getValue();
     } catch (Exception ex) {
         System.out.println(ex.getMessage());
     }
-    return message != null ? message : "";
+    // Sanitize the user input before using it in the response
+    String sanitizedMessage = Encode.forHtml(message.toString());
+    // Use response.getWriter() to ensure that any special characters are escaped properly
+    PrintWriter out = null;
+    try {
+        out = response.getWriter();
+        out.write(sanitizedMessage);
+    } catch (IOException e) {
+        e.printStackTrace();
+    } finally {
+        if (out != null) {
+            out.close();
+        }
+    }
+    return sanitizedMessage;
 }
+
 
     return message.toString();
   }
