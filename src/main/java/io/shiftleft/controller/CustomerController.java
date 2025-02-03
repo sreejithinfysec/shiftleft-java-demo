@@ -161,14 +161,20 @@ public class CustomerController {
        * @param request
        * @return
        */
-      private boolean checkCookie(WebRequest request) throws Exception {
+private boolean checkCookie(WebRequest request) throws Exception {
       	try {
-			return request.getHeader("Cookie").startsWith("settings=");
+			String cookie = request.getHeader("Cookie");
+			if (cookie != null && cookie.startsWith("settings=")) {
+				return true;
+			}
 		}
 		catch (Exception ex)
 		{
 			System.out.println(ex.getMessage());
 		}
+		return false;
+      }
+
 		return false;
       }
 
@@ -216,7 +222,7 @@ public class CustomerController {
    * @param request
    * @throws Exception
    */
-  @RequestMapping(value = "/saveSettings", method = RequestMethod.GET)
+@RequestMapping(value = "/saveSettings", method = RequestMethod.GET)
   public void saveSettings(HttpServletResponse httpResponse, WebRequest request) throws Exception {
     // "Settings" will be stored in a cookie
     // schema: base64(filename,value1,value2...), md5sum(base64(filename,value1,value2...))
@@ -248,7 +254,8 @@ public class CustomerController {
     String[] settings = new String(Base64.getDecoder().decode(base64txt)).split(",");
 	// storage will have ClassPathResource as basepath
     ClassPathResource cpr = new ClassPathResource("./static/");
-	  File file = new File(cpr.getPath()+settings[0]);
+	  String safeFileName = FilenameUtils.getName(settings[0]);
+    File file = new File(cpr.getPath() + safeFileName);
     if(!file.exists()) {
       file.getParentFile().mkdirs();
     }
@@ -262,6 +269,8 @@ public class CustomerController {
     fos.close();
     httpResponse.getOutputStream().println("Settings Saved");
   }
+
+
 
   /**
    * Debug test for saving and reading a customer
@@ -277,18 +286,18 @@ public class CustomerController {
    * @return String
    * @throws IOException
    */
-  @RequestMapping(value = "/debug", method = RequestMethod.GET)
-  public String debug(@RequestParam String customerId,
-					  @RequestParam int clientId,
-					  @RequestParam String firstName,
-                      @RequestParam String lastName,
-                      @RequestParam String dateOfBirth,
-                      @RequestParam String ssn,
-					  @RequestParam String socialSecurityNum,
-                      @RequestParam String tin,
-                      @RequestParam String phoneNumber,
-                      HttpServletResponse httpResponse,
-                     WebRequest request) throws IOException{
+@RequestMapping(value = "/debug", method = RequestMethod.GET)
+public String debug(@RequestParam String customerId,
+                    @RequestParam int clientId,
+                    @RequestParam String firstName,
+                    @RequestParam String lastName,
+                    @RequestParam String dateOfBirth,
+                    @RequestParam String ssn,
+                    @RequestParam String socialSecurityNum,
+                    @RequestParam String tin,
+                    @RequestParam String phoneNumber,
+                    HttpServletResponse httpResponse,
+                    WebRequest request) throws IOException, SQLException {
 
     // empty for now, because we debug
     Set<Account> accounts1 = new HashSet<Account>();
@@ -298,13 +307,34 @@ public class CustomerController {
                                       "", "Debug city", "CA", "12345"),
                                       accounts1);
 
-    customerRepository.save(customer1);
+    // Use parameterized query or prepared statement to prevent SQL injection
+    String sql = "INSERT INTO customers (customerId, clientId, firstName, lastName, dateOfBirth, ssn, socialInsurancenum, tin, phoneNumber, address, accounts) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    PreparedStatement pstmt = connection.prepareStatement(sql);
+    pstmt.setString(1, customer1.getCustomerId());
+    pstmt.setInt(2, customer1.getClientId());
+    pstmt.setString(3, customer1.getFirstName());
+    pstmt.setString(4, customer1.getLastName());
+    pstmt.setDate(5, new Date(customer1.getDateOfBirth().getTime()));
+    pstmt.setString(6, customer1.getSsn());
+    pstmt.setString(7, customer1.getSocialInsurancenum());
+    pstmt.setString(8, customer1.getTin());
+    pstmt.setString(9, customer1.getPhoneNumber());
+    pstmt.setString(10, customer1.getAddress().toString());
+    pstmt.setString(11, customer1.getAccounts().toString());
+    pstmt.executeUpdate();
+
     httpResponse.setStatus(HttpStatus.CREATED.value());
     httpResponse.setHeader("Location", String.format("%s/customers/%s",
-                           request.getContextPath(), customer1.getId()));
+                               request.getContextPath(), customer1.getId()));
 
-    return customer1.toString().toLowerCase().replace("script","");
-  }
+    // Use OWASP Encoder to sanitize output
+    return StringEscapeUtils.escapeHtml4(customer1.toString()).toLowerCase();
+}
+
+
+
+
+
 
 	/**
 	 * Debug test for saving and reading a customer

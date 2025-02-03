@@ -17,16 +17,34 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Controller
 public class SearchController {
 
-  @RequestMapping(value = "/search/user", method = RequestMethod.GET)
-  public String doGetSearch(@RequestParam String foo, HttpServletResponse response, HttpServletRequest request) {
+@RequestMapping(value = "/search/user", method = RequestMethod.GET)
+public String doGetSearch(@RequestParam String foo, HttpServletResponse response, HttpServletRequest request) {
     java.lang.Object message = new Object();
     try {
-      ExpressionParser parser = new SpelExpressionParser();
-      Expression exp = parser.parseExpression(foo);
-      message = (Object) exp.getValue();
+        ExpressionParser parser = new SpelExpressionParser();
+        Expression exp = parser.parseExpression(foo);
+        message = (Object) exp.getValue();
     } catch (Exception ex) {
-      System.out.println(ex.getMessage());
+        System.out.println(ex.getMessage());
     }
+    // Sanitize the user input before using it in the response
+    String sanitizedMessage = Encode.forHtml(message.toString());
+    // Use response.getWriter() to ensure that any special characters are escaped properly
+    PrintWriter out = null;
+    try {
+        out = response.getWriter();
+        out.write(sanitizedMessage);
+    } catch (IOException e) {
+        e.printStackTrace();
+    } finally {
+        if (out != null) {
+            out.close();
+        }
+    }
+    return sanitizedMessage;
+}
+
+
     return message.toString();
   }
 }
