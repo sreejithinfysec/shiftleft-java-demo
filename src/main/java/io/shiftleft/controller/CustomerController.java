@@ -278,39 +278,37 @@ public class CustomerController {
    * @throws IOException
    */
 @RequestMapping(value = "/debug", method = RequestMethod.GET)
-  public String debug(@RequestParam String customerId,
-					  @RequestParam int clientId,
-					  @RequestParam String firstName,
-                      @RequestParam String lastName,
-                      @RequestParam String dateOfBirth,
-                      @RequestParam String ssn,
-					  @RequestParam String socialSecurityNum,
-                      @RequestParam String tin,
-                      @RequestParam String phoneNumber,
-                      HttpServletResponse httpResponse,
-                     WebRequest request) throws IOException{
+public String debug(@RequestParam String customerId,
+                    @RequestParam int clientId,
+                    @RequestParam String firstName,
+                    @RequestParam String lastName,
+                    @RequestParam String dateOfBirth,
+                    @RequestParam String ssn,
+                    @RequestParam String socialSecurityNum,
+                    @RequestParam String tin,
+                    @RequestParam String phoneNumber,
+                    HttpServletResponse httpResponse,
+                    WebRequest request) throws IOException, ParseException {
 
     // empty for now, because we debug
     Set<Account> accounts1 = new HashSet<Account>();
     //dateofbirth example -> "1982-01-10"
-    String escapedFirstName = StringEscapeUtils.escapeHtml4(firstName);
-    String escapedLastName = StringEscapeUtils.escapeHtml4(lastName);
-    String escapedSocialSecurityNum = StringEscapeUtils.escapeHtml4(socialSecurityNum);
-    String escapedTin = StringEscapeUtils.escapeHtml4(tin);
-    String escapedPhoneNumber = StringEscapeUtils.escapeHtml4(phoneNumber);
+    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+    Date date = formatter.parse(dateOfBirth);
 
-    Customer customer1 = new Customer(customerId, clientId, escapedFirstName, escapedLastName, DateTime.parse(dateOfBirth).toDate(),
-                                      ssn, escapedSocialSecurityNum, escapedTin, escapedPhoneNumber, new Address("Debug str",
-                                      "", "Debug city", "CA", "12345"),
-                                      accounts1);
+    Customer customer1 = new Customer(customerId, clientId, firstName, lastName, date,
+            ssn, socialSecurityNum, tin, phoneNumber, new Address("Debug str",
+            "", "Debug city", "CA", "12345"),
+            accounts1);
 
     customerRepository.save(customer1);
     httpResponse.setStatus(HttpStatus.CREATED.value());
     httpResponse.setHeader("Location", String.format("%s/customers/%s",
-                           request.getContextPath(), customer1.getId()));
+            request.getContextPath(), customer1.getId()));
 
-    return customer1.toString().toLowerCase();
-  }
+    return Encode.forHtml(customer1.toString().toLowerCase());
+}
+
 
 
 	/**
