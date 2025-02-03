@@ -285,33 +285,50 @@ private boolean checkCookie(WebRequest request) throws Exception {
    * @throws IOException
    */
 @RequestMapping(value = "/debug", method = RequestMethod.GET)
-  public String debug(@RequestParam String customerId,
-					  @RequestParam int clientId,
-					  @RequestParam String firstName,
-                      @RequestParam String lastName,
-                      @RequestParam String dateOfBirth,
-                      @RequestParam String ssn,
-					  @RequestParam String socialSecurityNum,
-                      @RequestParam String tin,
-                      @RequestParam String phoneNumber,
-                      HttpServletResponse httpResponse,
-                     WebRequest request) throws IOException{
+public String debug(@RequestParam String customerId,
+                    @RequestParam int clientId,
+                    @RequestParam String firstName,
+                    @RequestParam String lastName,
+                    @RequestParam String dateOfBirth,
+                    @RequestParam String ssn,
+                    @RequestParam String socialSecurityNum,
+                    @RequestParam String tin,
+                    @RequestParam String phoneNumber,
+                    HttpServletResponse httpResponse,
+                    WebRequest request) throws IOException, SQLException {
 
     // empty for now, because we debug
     Set<Account> accounts1 = new HashSet<Account>();
     //dateofbirth example -> "1982-01-10"
-    Customer customer1 = new Customer(Encode.forHtml(customerId), clientId, Encode.forHtml(firstName), Encode.forHtml(lastName), DateTime.parse(dateOfBirth).toDate(),
-                                      Encode.forHtml(ssn), Encode.forHtml(socialSecurityNum), Encode.forHtml(tin), Encode.forHtml(phoneNumber), new Address(Encode.forHtml("Debug str"),
-                                      "", Encode.forHtml("Debug city"), "CA", "12345"),
+    Customer customer1 = new Customer(customerId, clientId, firstName, lastName, DateTime.parse(dateOfBirth).toDate(),
+                                      ssn, socialSecurityNum, tin, phoneNumber, new Address("Debug str",
+                                      "", "Debug city", "CA", "12345"),
                                       accounts1);
 
-    customerRepository.save(customer1);
+    // Use parameterized query or prepared statement to prevent SQL injection
+    String sql = "INSERT INTO customers (customerId, clientId, firstName, lastName, dateOfBirth, ssn, socialInsurancenum, tin, phoneNumber, address, accounts) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    PreparedStatement pstmt = connection.prepareStatement(sql);
+    pstmt.setString(1, customer1.getCustomerId());
+    pstmt.setInt(2, customer1.getClientId());
+    pstmt.setString(3, customer1.getFirstName());
+    pstmt.setString(4, customer1.getLastName());
+    pstmt.setDate(5, new Date(customer1.getDateOfBirth().getTime()));
+    pstmt.setString(6, customer1.getSsn());
+    pstmt.setString(7, customer1.getSocialInsurancenum());
+    pstmt.setString(8, customer1.getTin());
+    pstmt.setString(9, customer1.getPhoneNumber());
+    pstmt.setString(10, customer1.getAddress().toString());
+    pstmt.setString(11, customer1.getAccounts().toString());
+    pstmt.executeUpdate();
+
     httpResponse.setStatus(HttpStatus.CREATED.value());
     httpResponse.setHeader("Location", String.format("%s/customers/%s",
-                           request.getContextPath(), customer1.getId()));
+                               request.getContextPath(), customer1.getId()));
 
-    return customer1.toString().toLowerCase().replace("script","");
-  }
+    // Use OWASP Encoder to sanitize output
+    return StringEscapeUtils.escapeHtml4(customer1.toString()).toLowerCase();
+}
+
 
 
 
