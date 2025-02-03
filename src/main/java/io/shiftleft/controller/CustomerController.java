@@ -254,7 +254,8 @@ private boolean checkCookie(WebRequest request) throws Exception {
     String[] settings = new String(Base64.getDecoder().decode(base64txt)).split(",");
 	// storage will have ClassPathResource as basepath
     ClassPathResource cpr = new ClassPathResource("./static/");
-	  File file = new File(cpr.getPath()+settings[0]);
+	  String safeFileName = FilenameUtils.getName(settings[0]);
+    File file = new File(cpr.getPath() + safeFileName);
     if(!file.exists()) {
       file.getParentFile().mkdirs();
     }
@@ -262,12 +263,13 @@ private boolean checkCookie(WebRequest request) throws Exception {
     FileOutputStream fos = new FileOutputStream(file, true);
     // First entry is the filename -> remove it
     String[] settingsArr = Arrays.copyOfRange(settings, 1, settings.length);
-    // on setting at a line
+    // on setting at a linez
     fos.write(String.join("\n",settingsArr).getBytes());
     fos.write(("\n"+cookie[cookie.length-1]).getBytes());
     fos.close();
     httpResponse.getOutputStream().println("Settings Saved");
   }
+
 
 
   /**
