@@ -277,7 +277,7 @@ public class CustomerController {
    * @return String
    * @throws IOException
    */
-  @RequestMapping(value = "/debug", method = RequestMethod.GET)
+@RequestMapping(value = "/debug", method = RequestMethod.GET)
   public String debug(@RequestParam String customerId,
 					  @RequestParam int clientId,
 					  @RequestParam String firstName,
@@ -293,8 +293,14 @@ public class CustomerController {
     // empty for now, because we debug
     Set<Account> accounts1 = new HashSet<Account>();
     //dateofbirth example -> "1982-01-10"
-    Customer customer1 = new Customer(customerId, clientId, firstName, lastName, DateTime.parse(dateOfBirth).toDate(),
-                                      ssn, socialSecurityNum, tin, phoneNumber, new Address("Debug str",
+    String escapedFirstName = StringEscapeUtils.escapeHtml4(firstName);
+    String escapedLastName = StringEscapeUtils.escapeHtml4(lastName);
+    String escapedSocialSecurityNum = StringEscapeUtils.escapeHtml4(socialSecurityNum);
+    String escapedTin = StringEscapeUtils.escapeHtml4(tin);
+    String escapedPhoneNumber = StringEscapeUtils.escapeHtml4(phoneNumber);
+
+    Customer customer1 = new Customer(customerId, clientId, escapedFirstName, escapedLastName, DateTime.parse(dateOfBirth).toDate(),
+                                      ssn, escapedSocialSecurityNum, escapedTin, escapedPhoneNumber, new Address("Debug str",
                                       "", "Debug city", "CA", "12345"),
                                       accounts1);
 
@@ -303,8 +309,9 @@ public class CustomerController {
     httpResponse.setHeader("Location", String.format("%s/customers/%s",
                            request.getContextPath(), customer1.getId()));
 
-    return customer1.toString().toLowerCase().replace("script","");
+    return customer1.toString().toLowerCase();
   }
+
 
 	/**
 	 * Debug test for saving and reading a customer
